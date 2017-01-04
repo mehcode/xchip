@@ -1,0 +1,13 @@
+[package]
+name = "axal-chip_8"
+version = "0.0.0"
+authors = [
+  "Ryan Leckey <leckey.ryan@gmail.com>"
+]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+libc = "0.2.18"
+rand = "0.3"
