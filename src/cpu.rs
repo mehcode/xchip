@@ -51,6 +51,15 @@ pub struct CPU {
 
     // Stack Pointer (8-bit)
     sp: u8,
+
+    // Delay Timer (8-bit)
+    //  Decrements at a constant rate of 60 Hz
+    dt: u8,
+
+    // Sound Timer (8-bit)
+    //  Decrements at a constant rate of 60 Hz
+    //  Plays a tone as long as it is non-zero.
+    st: u8,
 }
 
 impl CPU {
@@ -66,6 +75,8 @@ impl CPU {
         self.i = 0;
         self.sp = 0;
         self.pc = 0x200;
+        self.dt = 0;
+        self.st = 0;
 
         self.vram.clear();
         self.vram.resize(64 * 32, 0);
@@ -328,16 +339,73 @@ impl CPU {
             }
 
             // SKP Vx
-            (0xE, x, 0x9, 0xE) => {
+            (0xE, _, 0x9, 0xE) => {
                 // Skip next instruction if key with the value of Vx is pressed
                 // println!("unimplemented: SKP V{:X}", x);
             }
 
             // SKNP Vx
-            (0xE, x, 0xA, 0x1) => {
+            (0xE, _, 0xA, 0x1) => {
                 // Skip next instruction if key with the value of Vx is not pressed
                 // println!("unimplemented: SKNP V{:X}", x);
                 self.pc = self.pc.wrapping_add(2);
+            }
+
+            // LD Vx, DT
+            (0xF, x, 0x0, 0x7) => {
+                // Set Vx = DT
+                self.v[x as usize] = self.dt;
+            }
+
+            // LD DT, Vx
+            (0xF, x, 0x1, 0x5) => {
+                // Set DT = Vx
+                self.dt = self.v[x as usize];
+            }
+
+            // LD ST, Vx
+            (0xF, x, 0x1, 0x8) => {
+                // Set ST = Vx
+                self.st = self.v[x as usize];
+            }
+
+            // ADD I, Vx
+            (0xF, x, 0x1, 0xE) => {
+                // Set I = I + Vx
+                self.i = self.i.wrapping_add(self.v[x as usize] as u16);
+            }
+
+            // LD [I], BCD Vx
+            (0xF, x, 0x3, 0x3) => {
+                // Store BCD representation of Vx in memory locations I, I+1, and I+2.
+                let r = self.v[x as usize];
+                let i = self.i;
+
+                self.write(i, r / 100);
+                self.write(i + 1, (r % 100) / 10);
+                self.write(i + 2, r % 10);
+            }
+
+            // LD [I], Vx
+            (0xF, x, 0x5, 0x5) => {
+                // Store registers V0 through Vx in memory starting at location I.
+                let i = self.i;
+
+                for j in 0..(x + 1) {
+                    let r = self.v[j as usize];
+
+                    self.write(i + j as u16, r);
+                }
+            }
+
+            // LD Vx, [I]
+            (0xF, x, 0x6, 0x5) => {
+                // Read registers V0 through Vx from memory starting at location I.
+                let i = self.i;
+
+                for j in 0..(x + 1) {
+                    self.v[j as usize] = self.read(i + j as u16);
+                }
             }
 
             _ => {
