@@ -58,6 +58,7 @@ impl CPU {
         self.ram.clear();
         self.ram.resize(0x200, 0);
         self.ram.append(&mut rom);
+        self.ram.resize(0x1000, 0);
     }
 
     pub fn reset(&mut self) {
