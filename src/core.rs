@@ -42,8 +42,8 @@ impl axal::Core for Core {
     }
 
     fn run_next(&mut self) {
-        // Run CPU for 1 frame ~ 500 Hz
-        for _ in 0..500 {
+        // Run CPU for 1 frame ~ 60 Hz
+        for _ in 0..60 {
             self.cpu.run_next();
         }
 
