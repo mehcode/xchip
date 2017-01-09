@@ -7,10 +7,12 @@ pub struct Opcode {
 }
 
 impl Opcode {
+        #[inline]
     fn new(hi: u8, lo: u8) -> Opcode {
         Opcode { hi: hi, lo: lo }
     }
 
+        #[inline]
     fn unpack(&self) -> (u8, u8, u8, u8) {
         ((self.hi >> 4), (self.hi & 0xF), (self.lo >> 4), (self.lo & 0xF))
     }
