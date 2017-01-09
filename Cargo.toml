@@ -5,6 +5,15 @@ authors = [
   "Ryan Leckey <leckey.ryan@gmail.com>"
 ]
 
+[profile.release]
+lto = true
+opt-level = 3
+debug = false
+codegen-units = 1
+debug-assertions = false
+rpath = false
+panic = "abort"
+
 [lib]
 crate-type = ["cdylib"]
 

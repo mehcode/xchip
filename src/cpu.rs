@@ -1,4 +1,5 @@
 use std::vec::Vec;
+use std::time::{Instant};
 use rand::random;
 
 pub struct Opcode {
@@ -54,6 +55,10 @@ pub struct CPU {
     // Stack Pointer (8-bit)
     sp: u8,
 
+    // 60 Hz timer that controls DT / ST
+    timer_elapsed: u64,
+    timer_instant: Option<Instant>,
+
     // Delay Timer (8-bit)
     //  Decrements at a constant rate of 60 Hz
     dt: u8,
@@ -85,6 +90,9 @@ impl CPU {
 
         self.framebuffer.clear();
         self.framebuffer.resize(64 * 32 * 3, 0);
+
+        self.timer_elapsed = 0;
+        self.timer_instant = None;
 
         // TODO: There must be a cleaner way to load font sprites
 
@@ -225,6 +233,26 @@ impl CPU {
     }
 
     pub fn run_next(&mut self) {
+        // If timer point reference is non-zero; check elapsed and 
+        // clock ST / DT
+        if let Some(timer_instant) = self.timer_instant {
+            let elapsed = timer_instant.elapsed();
+            self.timer_elapsed += (elapsed.as_secs() * 1_000_000_000) + (elapsed.subsec_nanos() as u64);
+
+            // 1/60 s => 16_666_666 ns
+            if self.timer_elapsed >= 16_666_666 {
+                self.timer_elapsed -= 16_666_666;
+
+                if self.dt > 0 {
+                    self.dt -= 1;
+                }
+
+                if self.st > 0 {
+                    self.st -= 1;
+                }
+            }
+        }
+
         // Read 16-bit opcode
         let opcode = Opcode::new(self.read_next(), self.read_next());
 
@@ -517,5 +545,8 @@ impl CPU {
                 panic!("unknown opcode: ${:02X}{:02X}", opcode.hi, opcode.lo);
             }
         }
+
+        // Update timer point reference
+        self.timer_instant = Some(Instant::now());
     }
 }
