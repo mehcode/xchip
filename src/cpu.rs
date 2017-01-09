@@ -7,12 +7,12 @@ pub struct Opcode {
 }
 
 impl Opcode {
-        #[inline]
+    #[inline]
     fn new(hi: u8, lo: u8) -> Opcode {
         Opcode { hi: hi, lo: lo }
     }
 
-        #[inline]
+    #[inline]
     fn unpack(&self) -> (u8, u8, u8, u8) {
         ((self.hi >> 4), (self.hi & 0xF), (self.lo >> 4), (self.lo & 0xF))
     }
@@ -344,7 +344,8 @@ impl CPU {
 
             // SHR Vx
             (0x8, x, _, 0x6) => {
-                // Set Vx = Vx SHR 1.
+                // Set Vx = Vx SHR 1; Set VF = Vx BIT 1
+                self.v[0xF] = self.v[x as usize] & 1;
                 self.v[x as usize] >>= 1;
             }
 
@@ -360,7 +361,8 @@ impl CPU {
 
             // SHL Vx
             (0x8, x, _, 0xE) => {
-                // Set Vx = Vx SHL 1.
+                // Set Vx = Vx SHL 1; Set VF = Vx BIT 7
+                self.v[0xF] = self.v[x as usize] >> 7;
                 self.v[x as usize] <<= 1;
             }
 
