@@ -47,7 +47,7 @@ impl axal::Core for Core {
     fn run_next(&mut self, r: &mut axal::Runtime) {
         // CPU: Run 8 instructions = 1 frame ~> 480 Hz
         for _ in 0..8 {
-            self.cpu.run_next();
+            self.cpu.run_next(r);
         }
 
         // Video: Refresh

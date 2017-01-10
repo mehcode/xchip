@@ -1,6 +1,27 @@
 use std::vec::Vec;
 use std::time::{Instant};
+use axal::{Runtime, Keyboard};
 use rand::random;
+
+// CHIP-8 hex keyboard -> modern keyboard
+const KEYBOARD_MAP: [Keyboard; 0x10] = [
+    Keyboard::X,
+    Keyboard::Num1,
+    Keyboard::Num2,
+    Keyboard::Num3,
+    Keyboard::Q,
+    Keyboard::W,
+    Keyboard::E,
+    Keyboard::A,
+    Keyboard::S,
+    Keyboard::D,
+    Keyboard::Z,
+    Keyboard::C,
+    Keyboard::Num4,
+    Keyboard::R,
+    Keyboard::F,
+    Keyboard::V
+];
 
 pub struct Opcode {
     hi: u8,
@@ -232,7 +253,12 @@ impl CPU {
         r
     }
 
-    pub fn run_next(&mut self) {
+    pub fn run_next(&mut self, r: &mut Runtime) {
+        // If PC is < 0x200; set to 0x200 (below 0x200 doesn't exist for PC)
+        if self.pc < 0x200 {
+            self.pc = 0x200;
+        }
+
         // If timer point reference is non-zero; check elapsed and 
         // clock ST / DT
         if let Some(timer_instant) = self.timer_instant {
@@ -273,6 +299,9 @@ impl CPU {
                 // Return from a subroutine
                 self.pc = self.pop();
             }
+
+            // Ignore all other 0x0___ patterns and treat as NOP
+            (0x0, ..) => {}
 
             // JP u12
             (0x1, ..) => {
@@ -466,16 +495,19 @@ impl CPU {
             }
 
             // SKP Vx
-            (0xE, _, 0x9, 0xE) => {
+            (0xE, x, 0x9, 0xE) => {
                 // Skip next instruction if key with the value of Vx is pressed
-                // println!("unimplemented: SKP V{:X}", x);
+                if r.input_keyboard_state(0, KEYBOARD_MAP[self.v[x as usize] as usize]) {
+                    self.pc = self.pc.wrapping_add(2);
+                }
             }
 
             // SKNP Vx
-            (0xE, _, 0xA, 0x1) => {
+            (0xE, x, 0xA, 0x1) => {
                 // Skip next instruction if key with the value of Vx is not pressed
-                // println!("unimplemented: SKNP V{:X}", x);
-                self.pc = self.pc.wrapping_add(2);
+                if !r.input_keyboard_state(0, KEYBOARD_MAP[self.v[x as usize] as usize]) {
+                    self.pc = self.pc.wrapping_add(2);
+                }
             }
 
             // LD Vx, DT
