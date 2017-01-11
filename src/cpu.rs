@@ -1,27 +1,12 @@
 use std::vec::Vec;
-use std::time::{Instant};
-use axal::{Runtime, Keyboard};
+use std::time::Instant;
+use axal::{Runtime, Key};
 use rand::random;
 
 // CHIP-8 hex keyboard -> modern keyboard
-const KEYBOARD_MAP: [Keyboard; 0x10] = [
-    Keyboard::X,
-    Keyboard::Num1,
-    Keyboard::Num2,
-    Keyboard::Num3,
-    Keyboard::Q,
-    Keyboard::W,
-    Keyboard::E,
-    Keyboard::A,
-    Keyboard::S,
-    Keyboard::D,
-    Keyboard::Z,
-    Keyboard::C,
-    Keyboard::Num4,
-    Keyboard::R,
-    Keyboard::F,
-    Keyboard::V
-];
+const KEYBOARD_MAP: [Key; 0x10] = [Key::X, Key::Num1, Key::Num2, Key::Num3, Key::Q, Key::W,
+                                   Key::E, Key::A, Key::S, Key::D, Key::Z, Key::C, Key::Num4,
+                                   Key::R, Key::F, Key::V];
 
 pub struct Opcode {
     hi: u8,
@@ -254,16 +239,12 @@ impl CPU {
     }
 
     pub fn run_next(&mut self, r: &mut Runtime) {
-        // If PC is < 0x200; set to 0x200 (below 0x200 doesn't exist for PC)
-        if self.pc < 0x200 {
-            self.pc = 0x200;
-        }
-
-        // If timer point reference is non-zero; check elapsed and 
+        // If timer point reference is non-zero; check elapsed and
         // clock ST / DT
         if let Some(timer_instant) = self.timer_instant {
             let elapsed = timer_instant.elapsed();
-            self.timer_elapsed += (elapsed.as_secs() * 1_000_000_000) + (elapsed.subsec_nanos() as u64);
+            self.timer_elapsed += (elapsed.as_secs() * 1_000_000_000) +
+                                  (elapsed.subsec_nanos() as u64);
 
             // 1/60 s => 16_666_666 ns
             if self.timer_elapsed >= 16_666_666 {
@@ -281,6 +262,8 @@ impl CPU {
 
         // Read 16-bit opcode
         let opcode = Opcode::new(self.read_next(), self.read_next());
+
+        println!("{:04X}: {:02X}{:02X}", self.pc, opcode.hi, opcode.lo);
 
         // Unpack and decode instruction
         match opcode.unpack() {
@@ -478,7 +461,7 @@ impl CPU {
                         let new = cur ^ mem;
 
                         // Set the collision flag if we are clearing
-                        collision = collision || (cur != 0) && (mem == 0);
+                        collision = collision || (cur != 0 && new == 0);
 
                         // Write to VRAM
                         self.vram[offset] = new;

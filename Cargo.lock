@@ -10,7 +10,7 @@ dependencies = [
 [[package]]
 name = "axal"
 version = "0.0.0"
-source = "git+https://github.com/mehcode/axal.git#ad8e83aca220e20d7d41ab755bb7d449f3e6e5f0"
+source = "git+https://github.com/mehcode/axal.git#5ec1d3bf4430456636fd1901c7668b63af4e2a27"
 dependencies = [
  "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
