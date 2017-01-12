@@ -3,6 +3,7 @@
 extern crate axal;
 
 extern crate rand;
+extern crate float_cmp;
 
 mod cpu;
 
@@ -51,7 +52,7 @@ impl axal::Core for Core {
         }
 
         // Video: Refresh
-        r.video_refresh(&self.cpu.framebuffer, 64, 32);
+        r.video_refresh(self.cpu.screen_as_framebuffer(), 64, 32);
     }
 }
 

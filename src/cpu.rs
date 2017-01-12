@@ -1,6 +1,7 @@
 use std::vec::Vec;
 use std::time::Instant;
 use axal::{Runtime, Key};
+use float_cmp::ApproxEqUlps;
 use rand::random;
 
 // CHIP-8 hex keyboard -> modern keyboard
@@ -35,18 +36,36 @@ impl Opcode {
     }
 }
 
+// 0.05 = 20 cycle decay
+// 0.1  = 10 cycle decay
+// 0.2  =  5 cycle decay
+// 0.5  =  2 cycle decay
+const PHASE_TICK: f32 = 0.1;
+
+#[derive(Default, Clone, Copy)]
+struct Pixel {
+    // On/Off
+    lit: bool,
+
+    // Phase [0.0, 1.0]
+    //  0.1 would be 10% opacity if lit is true and 90% opacity if lit is false
+    phase: f32,
+}
+
 #[derive(Default)]
 pub struct CPU {
     // RAM; 4 KiB
     ram: Vec<u8>,
 
-    // VRAM; 64x32
+    // Screen; 64x32
     //  Each pixel in the CHIP-8 screen is 1/0 and is XOR'd when drawn
-    vram: Vec<u8>,
+    //  When a pixel is turned off its dimmed at a set rate-per-cycle instead of immediately going out
+    screen: Vec<Pixel>,
 
-    // Frame buffer; 64x32 (x3)
-    //  Stores the RGB values for the current frame
-    pub framebuffer: Vec<u8>,
+    // Frame buffer; 64x32 (x4)
+    //  Stores the RGBA values for the current frame
+    //  This is updated _once_ per frame
+    framebuffer: Vec<u8>,
 
     // General Registers (8-bit x 16)
     //  v[0xF] is used as a _flags_ register by several instructions
@@ -91,8 +110,8 @@ impl CPU {
         self.dt = 0;
         self.st = 0;
 
-        self.vram.clear();
-        self.vram.resize(64 * 32, 0);
+        self.screen.clear();
+        self.screen.resize(64 * 32, Default::default());
 
         self.framebuffer.clear();
         self.framebuffer.resize(64 * 32 * 3, 0);
@@ -238,7 +257,51 @@ impl CPU {
         r
     }
 
+    pub fn screen_as_framebuffer(&mut self) -> &[u8] {
+        // Blit screen onto framebuffer
+        self.framebuffer.resize(self.screen.len() * 4, 0);
+        for y in 0..32 {
+            let offset_y = y * 64;
+
+            for x in 0..64 {
+                // Get pixel from screen
+                let offset = offset_y + x;
+                let pixel = self.screen[offset];
+
+                // Blit to framebuffer
+                let offset = offset * 4;
+                let l = if pixel.lit || pixel.phase < 1.0 {
+                    0xFF
+                } else {
+                    0x00
+                };
+
+                // RGBA
+                self.framebuffer[offset + 3] = if pixel.phase.approx_eq_ulps(&(1.0), 2) {
+                    0xFF
+                } else if pixel.lit {
+                    (pixel.phase * 256.0) as u8
+                } else {
+                    ((1.0 - pixel.phase) * 256.0) as u8
+                };
+
+                self.framebuffer[offset] = l;
+                self.framebuffer[offset + 1] = l;
+                self.framebuffer[offset + 2] = l;
+            }
+        }
+
+        &self.framebuffer
+    }
+
     pub fn run_next(&mut self, r: &mut Runtime) {
+        // Adjust phase of any decaying pixels
+        for p in &mut self.screen {
+            if p.phase < 1.0 {
+                p.phase += PHASE_TICK;
+            }
+        }
+
         // If timer point reference is non-zero; check elapsed and
         // clock ST / DT
         if let Some(timer_instant) = self.timer_instant {
@@ -267,12 +330,24 @@ impl CPU {
         match opcode.unpack() {
             // CLS
             (0x0, 0x0, 0xE, 0x0) => {
-                // Clear the screen
-                self.vram.clear();
-                self.vram.resize(64 * 32, 0);
+                // Clear 64x32 of the screen
+                for y in 0..32 {
+                    let offset_y = y * 64;
+                    for x in 0..64 {
+                        self.screen[offset_y + x] = Default::default();
+                    }
+                }
+            }
 
-                self.framebuffer.clear();
-                self.framebuffer.resize(64 * 32 * 3, 0);
+            // HRCLS
+            (0x0, 0x2, 0x3, 0x0) => {
+                // Clear 64x64 of the screen
+                for y in 0..64 {
+                    let offset_y = y * 64;
+                    for x in 0..64 {
+                        self.screen[offset_y + x] = Default::default();
+                    }
+                }
             }
 
             // RET
@@ -435,44 +510,42 @@ impl CPU {
                 // Display n-byte sprite starting in memory at I at (Vx, Vy)
                 // Set VF = <collision>
 
-                let mut collision = false;
                 let x = self.v[x as usize] as usize;
                 let y = self.v[y as usize] as usize;
 
+                // VF is cleared at the start of DRW so collision can be set easily
+                self.v[0xF] = 0;
+
                 for i in 0..(n as usize) {
+                    let sy = (y + i) % 32;
+
                     for j in 0..8 {
-                        // Plot (x, y) of sprite
-                        // TODO: Use variables for width/height (as it can change)
                         let sx = (x + j) % 64;
-                        let sy = (y + i) % 32;
 
                         // Get VRAM offset
                         let offset = sy * 64 + sx;
 
-                        // Read VRAM to get the _current_ value
-                        let cur = self.vram[offset];
+                        // Get _current_ pixel in the screen
+                        let pixel = &mut self.screen[offset];
+                        let was_lit = pixel.lit;
 
                         // Read memory to get the _set_ value
-                        let mem = (self.ram[(self.i as usize) + i] >> (7 - j)) & 1;
+                        let pixel_set_lit = (self.ram[(self.i as usize) + i] >> (7 - j)) & 1;
 
-                        // Determine the _new_ pixel value
-                        let new = cur ^ mem;
+                        // XOR to determine the new state of the pixel
+                        pixel.lit = ((pixel.lit as u8) ^ pixel_set_lit) != 0;
+                        if pixel.lit {
+                            pixel.phase = 1.0;
+                        } else if was_lit {
+                            // Start fade-out of pixel
+                            //  0.0 of lit=false is 100% opacity
+                            pixel.phase = 0.0;
+                        }
 
-                        // Set the collision flag if we are clearing
-                        collision = collision || (cur != 0 && new == 0);
-
-                        // Write to VRAM
-                        self.vram[offset] = new;
-
-                        // Update framebuffer
-                        self.framebuffer[(offset * 3)] = if new == 1 { 0xFF } else { 0x00 };
-                        self.framebuffer[(offset * 3) + 1] = if new == 1 { 0xFF } else { 0x00 };
-                        self.framebuffer[(offset * 3) + 2] = if new == 1 { 0xFF } else { 0x00 };
+                        // VF is set to indicate the transition 1 -> 0
+                        self.v[0xF] |= (was_lit && !pixel.lit) as u8;
                     }
                 }
-
-                // Set VF to collision flag
-                self.v[0xF] = collision as u8;
             }
 
             // SKP Vx
