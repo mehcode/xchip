@@ -263,8 +263,6 @@ impl CPU {
         // Read 16-bit opcode
         let opcode = Opcode::new(self.read_next(), self.read_next());
 
-        println!("{:04X}: {:02X}{:02X}", self.pc, opcode.hi, opcode.lo);
-
         // Unpack and decode instruction
         match opcode.unpack() {
             // CLS
