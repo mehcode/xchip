@@ -1,7 +1,6 @@
 use std::vec::Vec;
 use std::time::Instant;
 use axal::{Runtime, Key};
-use float_cmp::ApproxEqUlps;
 use rand::random;
 
 // CHIP-8 hex keyboard -> modern keyboard
@@ -40,7 +39,7 @@ impl Opcode {
 // 0.1  = 10 cycle decay
 // 0.2  =  5 cycle decay
 // 0.5  =  2 cycle decay
-const PHASE_TICK: f32 = 0.1;
+const PHASE_TICK: f32 = 0.05;
 
 #[derive(Default, Clone, Copy)]
 struct Pixel {
@@ -62,8 +61,8 @@ pub struct CPU {
     //  When a pixel is turned off its dimmed at a set rate-per-cycle instead of immediately going out
     screen: Vec<Pixel>,
 
-    // Frame buffer; 64x32 (x4)
-    //  Stores the RGBA values for the current frame
+    // Frame buffer; 64x32 (in R3_B3_G2 format)
+    //  Stores the RGB values for the current frame
     //  This is updated _once_ per frame
     framebuffer: Vec<u8>,
 
@@ -112,9 +111,6 @@ impl CPU {
 
         self.screen.clear();
         self.screen.resize(64 * 32, Default::default());
-
-        self.framebuffer.clear();
-        self.framebuffer.resize(64 * 32 * 3, 0);
 
         self.timer_elapsed = 0;
         self.timer_instant = None;
@@ -259,35 +255,22 @@ impl CPU {
 
     pub fn screen_as_framebuffer(&mut self) -> &[u8] {
         // Blit screen onto framebuffer
-        self.framebuffer.resize(self.screen.len() * 4, 0);
+        self.framebuffer.resize(self.screen.len(), 0);
         for y in 0..32 {
             let offset_y = y * 64;
 
             for x in 0..64 {
-                // Get pixel from screen
                 let offset = offset_y + x;
+
+                // Get pixel from screen
                 let pixel = self.screen[offset];
 
                 // Blit to framebuffer
-                let offset = offset * 4;
-                let l = if pixel.lit || pixel.phase < 1.0 {
+                self.framebuffer[offset] = if pixel.lit || pixel.phase < 1.0 {
                     0xFF
                 } else {
                     0x00
                 };
-
-                // RGBA
-                self.framebuffer[offset + 3] = if pixel.phase.approx_eq_ulps(&(1.0), 2) {
-                    0xFF
-                } else if pixel.lit {
-                    (pixel.phase * 256.0) as u8
-                } else {
-                    ((1.0 - pixel.phase) * 256.0) as u8
-                };
-
-                self.framebuffer[offset] = l;
-                self.framebuffer[offset + 1] = l;
-                self.framebuffer[offset + 2] = l;
             }
         }
 

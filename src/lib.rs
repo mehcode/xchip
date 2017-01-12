@@ -3,7 +3,6 @@
 extern crate axal;
 
 extern crate rand;
-extern crate float_cmp;
 
 mod cpu;
 

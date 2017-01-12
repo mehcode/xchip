@@ -21,4 +21,3 @@ crate-type = ["cdylib"]
 libc = "0.2.18"
 rand = "0.3"
 axal = { git = "https://github.com/mehcode/axal.git" }
-float-cmp = "0.2.3"
