@@ -4,4 +4,4 @@
 #[macro_use]
 extern crate axal;
 
-ax_generate_main!(axal_chip_8);
+ax_generate_main!(xchip);
