@@ -1,6 +1,6 @@
 [root]
 name = "axal-chip_8"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "axal 0.0.0 (git+https://github.com/mehcode/axal.git)",
  "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -10,10 +10,24 @@ dependencies = [
 [[package]]
 name = "axal"
 version = "0.0.0"
-source = "git+https://github.com/mehcode/axal.git#5ec1d3bf4430456636fd1901c7668b63af4e2a27"
+source = "git+https://github.com/mehcode/axal.git#a1764c777435182be5b955384e5deb7163246c77"
 dependencies = [
+ "cmake 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "cmake"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gcc 0.3.41 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gcc"
+version = "0.3.41"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "libc"
@@ -30,5 +44,7 @@ dependencies = [
 
 [metadata]
 "checksum axal 0.0.0 (git+https://github.com/mehcode/axal.git)" = "<none>"
+"checksum cmake 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "a3a6805df695087e7c1bcd9a82e03ad6fb864c8e67ac41b1348229ce5b7f0407"
+"checksum gcc 0.3.41 (registry+https://github.com/rust-lang/crates.io-index)" = "3689e1982a563af74960ae3a4758aa632bb8fd984cfc3cc3b60ee6109477ab6e"
 "checksum libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)" = "9e030dc72013ed68994d1b2cbf36a94dd0e58418ba949c4b0db7eeb70a7a6352"
 "checksum rand 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "022e0636ec2519ddae48154b028864bdce4eaf7d35226ab8e65c611be97b189d"

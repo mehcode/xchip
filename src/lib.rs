@@ -19,7 +19,7 @@ pub struct Core {
 
 impl axal::Core for Core {
     fn info(&self) -> axal::Info {
-        axal::Info::new("CHIP-8", "0.0.1")
+        axal::Info::new("xCHIP", env!("CARGO_PKG_VERSION"))
             .pixel_format(axal::PixelFormat::R3_G3_B2)
             .size(64, 32)
             .max_size(64, 64)
@@ -44,6 +44,7 @@ impl axal::Core for Core {
         self.cpu.take_rom(vec![]);
     }
 
+    // Run core for a _single_ frame
     fn run_next(&mut self, r: &mut axal::Runtime) {
         // CPU: Run 8 instructions = 1 frame ~> 480 Hz
         for _ in 0..8 {
@@ -53,7 +54,14 @@ impl axal::Core for Core {
         // Video: Refresh
         r.video_refresh(self.cpu.screen_as_framebuffer(), 64, 32);
     }
+
+    // fn serialize() { }
+    // fn deserialize() { }
 }
 
+// impl axal::Debug for Core { }
+
+// impl axal::UI (name?) for Core { }
+
 // Generate C API
-ax_core!(Core);
+ax_generate_lib!(Core);

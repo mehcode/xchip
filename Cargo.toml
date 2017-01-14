@@ -1,6 +1,6 @@
 [package]
 name = "axal-chip_8"
-version = "0.0.0"
+version = "0.1.0"
 authors = [
   "Ryan Leckey <leckey.ryan@gmail.com>"
 ]
@@ -15,7 +15,7 @@ rpath = false
 panic = "abort"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 libc = "0.2.18"
