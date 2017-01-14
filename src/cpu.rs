@@ -434,7 +434,7 @@ impl CPU {
                 let vx = self.v[x as usize];
                 let vy = self.v[y as usize];
 
-                self.v[0xF] = (vx > vy) as u8;
+                self.v[0xF] = (!(vy > vx)) as u8;
                 self.v[x as usize] = vx.wrapping_sub(vy);
             }
 
@@ -451,7 +451,7 @@ impl CPU {
                 let vx = self.v[x as usize];
                 let vy = self.v[y as usize];
 
-                self.v[0xF] = (vy > vx) as u8;
+                self.v[0xF] = (!(vx > vy)) as u8;
                 self.v[x as usize] = vy.wrapping_sub(vx);
             }
 
