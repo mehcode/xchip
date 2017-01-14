@@ -1,4 +1,5 @@
 use std::vec::Vec;
+use std::cmp;
 use std::time::Instant;
 use axal::{Runtime, Key};
 use rand::random;
@@ -70,6 +71,9 @@ pub struct CPU {
     //  v[0xF] is used as a _flags_ register by several instructions
     v: [u8; 0x10],
 
+    // Scratch space for at most 8 general registers
+    v_scratch: [u8; 8],
+
     // Index Register (12-bit)
     i: u16,
 
@@ -103,6 +107,7 @@ impl CPU {
 
     pub fn reset(&mut self) {
         self.v = [0; 0x10];
+        self.v_scratch = [0; 8];
         self.i = 0;
         self.sp = 0;
         self.pc = 0x200;
@@ -277,6 +282,8 @@ impl CPU {
         &self.framebuffer
     }
 
+    // TODO: Refactor to remove this lint
+    #[allow(unknown_lints, cyclomatic_complexity)]
     pub fn run_next(&mut self, r: &mut Runtime) {
         // Adjust phase of any decaying pixels
         for p in &mut self.screen {
@@ -568,7 +575,12 @@ impl CPU {
             // ADD I, Vx
             (0xF, x, 0x1, 0xE) => {
                 // Set I = I + Vx
-                self.i = self.i.wrapping_add(self.v[x as usize] as u16);
+                let r: u32 = self.i as u32 + self.v[x as usize] as u32;
+
+                self.i = (r & 0xFFF) as u16;
+
+                // If buffer overflow, register > VF must be set to 1, otherwise 0.
+                self.v[0xF] = (r > 0xFFF) as u8;
             }
 
             // LD [I], FONT Vx
@@ -607,6 +619,22 @@ impl CPU {
 
                 for j in 0..(x + 1) {
                     self.v[j as usize] = self.read(i + j as u16);
+                }
+            }
+
+            // SAVE Vx (SCHIP-8)
+            (0xF, x, 0x7, 0x5) => {
+                // Save registers V0 through Vx (x <= 7)
+                for i in 0..(cmp::max(x as usize, 7) + 1) {
+                    self.v_scratch[i] = self.v[i];
+                }
+            }
+
+            // RESTORE Vx (SCHIP-8)
+            (0xF, x, 0x8, 0x5) => {
+                // Restore registers V0 through Vx (x <= 7)
+                for i in 0..(cmp::max(x as usize, 7) + 1) {
+                    self.v[i] = self.v_scratch[i];
                 }
             }
 
