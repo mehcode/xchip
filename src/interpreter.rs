@@ -4,6 +4,30 @@ use std::time::Instant;
 use axal::{Runtime, Key};
 use rand::random;
 
+const SCREEN_STANDARD_WIDTH: usize = 64;
+const SCREEN_STANDARD_HEIGHT: usize = 32;
+
+const SCREEN_EXTENDED_WIDTH: usize = 128;
+const SCREEN_EXTENDED_HEIGHT: usize = 64;
+
+#[derive(PartialEq)]
+enum ScreenMode {
+    // Standard 32x64 mode
+    Standard = 0,
+
+    // HIRES 64x64 mode for CHIP-8
+    HiRes,
+
+    // Extended 64x128 mode for SUPERCHIP-8
+    Extended,
+}
+
+impl Default for ScreenMode {
+    fn default() -> Self {
+        ScreenMode::Standard
+    }
+}
+
 // CHIP-8 hex keyboard -> modern keyboard
 const KEYBOARD_MAP: [Key; 0x10] = [Key::X, Key::Num1, Key::Num2, Key::Num3, Key::Q, Key::W,
                                    Key::E, Key::A, Key::S, Key::D, Key::Z, Key::C, Key::Num4,
@@ -53,9 +77,16 @@ struct Pixel {
 }
 
 #[derive(Default)]
-pub struct CPU {
+pub struct Interpreter {
     // RAM; 4 KiB
     ram: Vec<u8>,
+
+    // Mode of the screen
+    screen_mode: ScreenMode,
+
+    // Size of the Screen
+    width: usize,
+    height: usize,
 
     // Screen; 64x32
     //  Each pixel in the CHIP-8 screen is 1/0 and is XOR'd when drawn
@@ -97,7 +128,7 @@ pub struct CPU {
     st: u8,
 }
 
-impl CPU {
+impl Interpreter {
     pub fn take_rom(&mut self, mut rom: Vec<u8>) {
         self.ram.clear();
         self.ram.resize(0x200, 0);
@@ -114,8 +145,13 @@ impl CPU {
         self.dt = 0;
         self.st = 0;
 
+        self.screen_mode = ScreenMode::Standard;
+
+        self.width = SCREEN_STANDARD_WIDTH;
+        self.height = SCREEN_STANDARD_HEIGHT;
+
         self.screen.clear();
-        self.screen.resize(64 * 32, Default::default());
+        self.screen.resize(self.width * self.height, Default::default());
 
         self.timer_elapsed = 0;
         self.timer_instant = None;
@@ -258,13 +294,13 @@ impl CPU {
         r
     }
 
-    pub fn screen_as_framebuffer(&mut self) -> &[u8] {
+    pub fn screen_as_framebuffer(&mut self) -> (&[u8], usize, usize) {
         // Blit screen onto framebuffer
         self.framebuffer.resize(self.screen.len(), 0);
-        for y in 0..32 {
-            let offset_y = y * 64;
+        for y in 0..self.height {
+            let offset_y = y * self.width;
 
-            for x in 0..64 {
+            for x in 0..self.width {
                 let offset = offset_y + x;
 
                 // Get pixel from screen
@@ -279,7 +315,7 @@ impl CPU {
             }
         }
 
-        &self.framebuffer
+        (&self.framebuffer, self.width, self.height)
     }
 
     // TODO: Refactor to remove this lint
@@ -320,10 +356,16 @@ impl CPU {
         match opcode.unpack() {
             // CLS
             (0x0, 0x0, 0xE, 0x0) => {
-                // Clear 64x32 of the screen
-                for y in 0..32 {
-                    let offset_y = y * 64;
-                    for x in 0..64 {
+                // Clear 32x64 OR 64x128 (in extended mode only) of the screen
+                let (h, w) = if self.screen_mode == ScreenMode::Extended {
+                    (self.height, self.width)
+                } else {
+                    (SCREEN_STANDARD_HEIGHT, SCREEN_STANDARD_WIDTH)
+                };
+
+                for y in 0..h {
+                    let offset_y = y * w;
+                    for x in 0..w {
                         self.screen[offset_y + x] = Default::default();
                     }
                 }
@@ -333,9 +375,9 @@ impl CPU {
             (0x0, 0x2, 0x3, 0x0) => {
                 // Clear 64x64 of the screen
                 for y in 0..64 {
-                    let offset_y = y * 64;
+                    let offset_y = (y % self.height) * 64;
                     for x in 0..64 {
-                        self.screen[offset_y + x] = Default::default();
+                        self.screen[offset_y + (x % self.width)] = Default::default();
                     }
                 }
             }
@@ -346,9 +388,31 @@ impl CPU {
                 self.pc = self.pop();
             }
 
-            // Ignore all other 0x0___ patterns and treat as NOP
-            (0x0, ..) => {}
+            // Disable extended screen mode (SCHIP-8)
+            // TODO: Define mnemonic
+            (0x0, 0x0, 0xF, 0xE) => {
+                self.screen_mode = ScreenMode::Standard;
 
+                self.width = SCREEN_STANDARD_WIDTH;
+                self.height = SCREEN_STANDARD_HEIGHT;
+
+                self.screen.resize(self.width * self.height, Default::default());
+            }
+
+            // Enable extended screen mode (SCHIP-8)
+            // TODO: Define mnemonic
+            (0x0, 0x0, 0xF, 0xF) => {
+                self.screen_mode = ScreenMode::Extended;
+
+                self.width = SCREEN_EXTENDED_WIDTH;
+                self.height = SCREEN_EXTENDED_HEIGHT;
+
+                self.screen.resize(self.width * self.height, Default::default());
+            }
+
+            // Ignore all other 0x0___ patterns and treat as NOP
+            // (0x0, ..) => {}
+            //
             // JP u12
             (0x1, ..) => {
                 // Jump to u12
@@ -507,13 +571,13 @@ impl CPU {
                 self.v[0xF] = 0;
 
                 for i in 0..(n as usize) {
-                    let sy = (y + i) % 32;
+                    let sy = (y + i) % self.height;
 
                     for j in 0..8 {
-                        let sx = (x + j) % 64;
+                        let sx = (x + j) % self.width;
 
                         // Get VRAM offset
-                        let offset = sy * 64 + sx;
+                        let offset = sy * self.width + sx;
 
                         // Get _current_ pixel in the screen
                         let pixel = &mut self.screen[offset];
