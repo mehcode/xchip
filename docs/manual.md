@@ -33,7 +33,7 @@ The CHIP-8X language adds:
 ### Instructions (in addition to CHIP-8)
 
 | Opcode | Mnemonic | Description |
-| - | - | - |
+| --- | --- | --- |
 | `02A0` | ```STEPCOL``` | Steps the background color (-> Blue -> Black -> Green -> Red ->); the background color starts at Black. |
 | `5XY1` | ```ADD VX, VY``` | Set `VX` equal to `VX` plus `VY` |
 | `BXY0` | ```COL VX, VY``` | Set foreground color of 1 or more 8x4 dot zones (*) |
@@ -52,7 +52,7 @@ The lower 4 bits of `V[X+1]` is the vertical zone index (0-7). The upper 4 bits 
 The lower 4 bits of `VY` are used to chose a color from this palette:
 
 | Value | Color |
-| - | - |
+| --- | --- | --- |
 | `0` | Black |
 | `1` | Red |
 | `2` | Blue |
@@ -79,7 +79,7 @@ The color is chosen with `VY` as in `BXY0`.
 ### Instructions (in addition to CHIP-8)
 
 | Opcode | Mnemonic | Description |
-| - | - | - |
+| --- | --- | --- |
 | `00CN` | ```SCDOWN N``` | Scroll display `N` lines down. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
 | `00FB` | ```SCRIGHT``` | Scroll display 4 dots right. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
 | `00FC` | ```SCLEFT``` | Scroll display 4 dots left. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
