@@ -9,7 +9,7 @@ of 128 (horizontally) x 64 (vertically).
 
 No observable differences in instructions beyond the usage of a doubled display.
 
-**Incomaptible** with HIRES CHIP-8, SUPER-CHIP, MEGA-CHIP8, and XO-CHIP.
+**Incompatible** with HIRES CHIP-8, SUPER-CHIP, MEGA-CHIP8, and XO-CHIP.
 
 [CHIP-10]: http://www.mattmik.com/files/viper/Volume1Issue07.pdf
 
