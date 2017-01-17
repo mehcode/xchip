@@ -34,10 +34,10 @@ The CHIP-8X language adds:
 
 | Opcode | Mnemonic | Description |
 | --- | --- | --- |
-| `02A0` | ```STEPCOL``` | Steps the background color (-> Blue -> Black -> Green -> Red ->); the background color starts at Black. |
-| `5XY1` | ```ADD VX, VY``` | Set `VX` equal to `VX` plus `VY` |
-| `BXY0` | ```COL VX, VY``` | Set foreground color of 1 or more 8x4 dot zones (*) |
-| `BXYN` | ```COL VX, VY, N``` | Set foreground color of 1 or more 8x1 dot zones (*) |
+| `02A0` | `STEPCOL` | Steps the background color (-> Blue -> Black -> Green -> Red ->); the background color starts at Black. |
+| `5XY1` | `ADD VX, VY` | Set `VX` equal to `VX` plus `VY` |
+| `BXY0` | `COL VX, VY` | Set foreground color of 1 or more 8x4 dot zones (*) |
+| `BXYN` | `COL VX, VY, N` | Set foreground color of 1 or more 8x1 dot zones (*) |
 
 (*) Defined below as these instructions require more explanation than would fit in the table.
 
@@ -80,13 +80,13 @@ The color is chosen with `VY` as in `BXY0`.
 
 | Opcode | Mnemonic | Description |
 | --- | --- | --- |
-| `00CN` | ```SCDOWN N``` | Scroll display `N` lines down. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
-| `00FB` | ```SCRIGHT``` | Scroll display 4 dots right. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
-| `00FC` | ```SCLEFT``` | Scroll display 4 dots left. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
-| `00FD` | ```EXIT``` | Exit the interpreter. Modern interpreters should simply halt operation.
+| `00CN` | `SCDOWN N` | Scroll display `N` lines down. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
+| `00FB` | `SCRIGHT` | Scroll display 4 dots right. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
+| `00FC` | `SCLEFT` | Scroll display 4 dots left. When in _normal_ (64x32) display mode; the display is scrolled by half-dots. |
+| `00FD` | `EXIT` | Exit the interpreter. Modern interpreters should simply halt operation.
 | `00FE` |  | Enable _extended_, 128x64 display mode. This should act as if the existing 64x32 screen buffer is divided to double the number of dots accessible (rather than increasing resolution in any direction). |
 | `00FF` |  | Disable _extended_ display mode and revert to _normal_, 64x32 display mode. The existing screen buffer should be left unchanged. |
-| `DXY0` | ```SHOW VX, VY``` | Show 16x16 sprite from `I` at coordinates (`VX`, `VY`). `VF` is still used for collision.
-| `FX30` | ```LD [I], SFONT VX``` | Point I to 10-byte font sprite for digit `VX` (originally this was restricted to `<= 9` but as there is no harm in extending that to the full hex range, this is what xCHIP does). |
-| `FX75` | ```SAVE V0..VX``` | Store `V0`..`VX` in interpreter memory (`X` <= 7) |
-| `FX85` | ```RESTORE V0..VX``` | Store `V0`..`VX` in interpreter memory (`X` <= 7) |
+| `DXY0` | `SHOW VX, VY` | Show 16x16 sprite from `I` at coordinates (`VX`, `VY`). `VF` is still used for collision.
+| `FX30` | `LD [I], SFONT VX` | Point I to 10-byte font sprite for digit `VX` (originally this was restricted to `<= 9` but as there is no harm in extending that to the full hex range, this is what xCHIP does). |
+| `FX75` | `SAVE V0..VX` | Store `V0`..`VX` in interpreter memory (`X` <= 7) |
+| `FX85` | `RESTORE V0..VX` | Store `V0`..`VX` in interpreter memory (`X` <= 7) |
