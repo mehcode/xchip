@@ -5,7 +5,7 @@
 ## [CHIP-10] — VIPER 1.7 by Ben H. Hutchinson, Jr. (1979)
 
 A modified version of CHIP-8 providing an expanded screen resolution
-of 128 (horizontallv) x 64 (vertically).
+of 128 (horizontally) x 64 (vertically).
 
 No observable differences in instructions beyond the usage of a doubled display.
 
