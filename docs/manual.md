@@ -3,6 +3,7 @@
 ## CHIP-8 (1978)
 
 ## [CHIP-10] — VIPER 1.7 by Ben H. Hutchinson, Jr. (1979)
+> **Incomaptible** with HIRES CHIP-8, SUPER-CHIP, MEGA-CHIP8, and XO-CHIP.
 
 A modified version of CHIP-8 providing an expanded screen resolution
 of 128 (horizontally) x 64 (vertically).
@@ -10,8 +11,6 @@ of 128 (horizontally) x 64 (vertically).
 No observable differences in instructions beyond the usage of a doubled display.
 
 [CHIP-10]: http://www.mattmik.com/files/viper/Volume1Issue07.pdf
-
-Incomaptible with HIRES CHIP-8, SUPER-CHIP, MEGA-CHIP8, and XO-CHIP.
 
 ## [CHIP-8X] — VIPER 1.3 by Rick Simpson (1978)
 
