@@ -371,7 +371,7 @@ impl Interpreter {
                 }
             }
 
-            // HRCLS
+            // HRCLS (HIRES CHIP-8)
             (0x0, 0x2, 0x3, 0x0) => {
                 // Clear 64x64 of the screen
                 for y in 0..64 {
@@ -382,13 +382,38 @@ impl Interpreter {
                 }
             }
 
+            // SCROLL DOWN N (SUPER-CHIP)
+            (0x0, 0x0, 0xC, n) => {
+                // Scroll screen N lines down
+                let n = n as usize;
+
+                if n > 0 {
+                    for y in (0..self.height).rev() {
+                        let dst_offset_y = y * self.width;
+                        let src_offset_y = if y < n { 0 } else { (y - n) * self.width };
+
+                        for x in 0..self.width {
+                            let dst_offset = dst_offset_y + x;
+
+                            if y < n {
+                                self.screen[dst_offset] = Default::default();
+                            } else {
+                                let src_offset = src_offset_y + x;
+
+                                self.screen[dst_offset] = self.screen[src_offset];
+                            }
+                        }
+                    }
+                }
+            }
+
             // RET
             (0x0, 0x0, 0xE, 0xE) => {
                 // Return from a subroutine
                 self.pc = self.pop();
             }
 
-            // Disable extended screen mode (SCHIP-8)
+            // Disable extended screen mode (SUPER-CHIP)
             // TODO: Define mnemonic
             (0x0, 0x0, 0xF, 0xE) => {
                 self.screen_mode = ScreenMode::Standard;
@@ -399,7 +424,7 @@ impl Interpreter {
                 self.screen.resize(self.width * self.height, Default::default());
             }
 
-            // Enable extended screen mode (SCHIP-8)
+            // Enable extended screen mode (SUPER-CHIP)
             // TODO: Define mnemonic
             (0x0, 0x0, 0xF, 0xF) => {
                 self.screen_mode = ScreenMode::Extended;
@@ -686,7 +711,7 @@ impl Interpreter {
                 }
             }
 
-            // SAVE Vx (SCHIP-8)
+            // SAVE Vx (SUPER-CHIP)
             (0xF, x, 0x7, 0x5) => {
                 // Save registers V0 through Vx (x <= 7)
                 for i in 0..(cmp::max(x as usize, 7) + 1) {
@@ -694,7 +719,7 @@ impl Interpreter {
                 }
             }
 
-            // RESTORE Vx (SCHIP-8)
+            // RESTORE Vx (SUPER-CHIP)
             (0xF, x, 0x8, 0x5) => {
                 // Restore registers V0 through Vx (x <= 7)
                 for i in 0..(cmp::max(x as usize, 7) + 1) {
