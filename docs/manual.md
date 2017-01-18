@@ -14,7 +14,7 @@ The COSMAC VIP that the CHIP-8 language was designed to run on normally had eith
 
 ### Memory Map
 
-|  |  |
+| Range | Description |
 | --- | --- |
 | `$000` - `$1FF` | Reserved for the interpreter program and contains the standard font sprites. |
 | `$200` - `$Y9F` | User program; CHIP-8 programs are loaded (and begin execution) at `$200`. |
