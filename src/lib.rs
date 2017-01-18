@@ -1,3 +1,4 @@
+#![feature(type_ascription)]
 
 #[macro_use]
 extern crate axal;
@@ -9,9 +10,6 @@ mod chip_8;
 mod super_chip;
 
 mod interpreter;
-
-use std::fs::File;
-use std::io::Read;
 
 #[derive(Default)]
 pub struct Core {
@@ -31,17 +29,10 @@ impl axal::Core for Core {
     }
 
     fn rom_insert(&mut self, filename: &str) {
-        // Read file
-        let stream = File::open(filename).unwrap();
-        let mut buffer = Vec::new();
-        stream.take(0x800).read_to_end(&mut buffer).unwrap();
-
-        // Push ROM buffer
-        self.interpreter.insert_rom(&buffer);
+        self.interpreter.insert_rom(filename);
     }
 
     fn rom_remove(&mut self) {
-        // Clear ROM buffer from Memory
         self.interpreter.remove_rom();
     }
 

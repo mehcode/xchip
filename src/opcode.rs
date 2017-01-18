@@ -8,10 +8,10 @@ pub struct Opcode {
 
 impl Opcode {
     #[inline]
-    pub fn read_next(pc: &mut u32, m: &mut Mmu) -> Self {
+    pub fn read_next(pc: &mut usize, m: &mut Mmu) -> Self {
         let r = Opcode {
-            hi: m.read(*pc as usize),
-            lo: m.read((*pc as usize) + 1),
+            hi: m.read(*pc),
+            lo: m.read(*pc + 1),
         };
 
         *pc += 2;
