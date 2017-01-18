@@ -126,5 +126,5 @@ The color is chosen with `VY` as in `BXY0`.
 | `00FF` | Disable _extended_ display mode and revert to _normal_, 64x32 display mode. The existing screen buffer should be left unchanged. |
 | `DXY0` | Show 16x16 sprite from `I` at coordinates (`VX`, `VY`). `VF` is still used for collision.
 | `FX30` | Point I to 10-byte font sprite for digit `VX` (originally this was restricted to `<= 9` but as there is no harm in extending that to the full hex range, this is what xCHIP does). |
-| `FX75` | Store `V0`..`VX` in interpreter memory (`X` <= 7) |
-| `FX85` | Store `V0`..`VX` in interpreter memory (`X` <= 7) |
+| `FX75` | Save `V0`..`VX` in persistent, shared memory (`X` <= 7) |
+| `FX85` | Restore `V0`..`VX` in persistent, shared memory (`X` <= 7) |
