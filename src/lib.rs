@@ -2,11 +2,14 @@
 #[macro_use]
 extern crate axal;
 
-extern crate rand;
+mod mmu;
+mod opcode;
+
+mod chip_8;
+mod super_chip;
 
 mod interpreter;
 
-use std::vec::Vec;
 use std::fs::File;
 use std::io::Read;
 
@@ -20,7 +23,7 @@ impl axal::Core for Core {
         axal::Info::new("xCHIP", env!("CARGO_PKG_VERSION"))
             .pixel_format(axal::PixelFormat::R3_G3_B2)
             .size(64, 32)
-            .max_size(64, 64)
+            .max_size(128, 64)
     }
 
     fn reset(&mut self) {
@@ -34,12 +37,12 @@ impl axal::Core for Core {
         stream.take(0x800).read_to_end(&mut buffer).unwrap();
 
         // Push ROM buffer
-        self.interpreter.take_rom(buffer);
+        self.interpreter.insert_rom(&buffer);
     }
 
     fn rom_remove(&mut self) {
         // Clear ROM buffer from Memory
-        self.interpreter.take_rom(vec![]);
+        self.interpreter.remove_rom();
     }
 
     // Run core for a _single_ frame
@@ -49,9 +52,9 @@ impl axal::Core for Core {
             self.interpreter.run_next(r);
         }
 
-        // Video: Refresh
-        let (framebuffer, width, height) = self.interpreter.screen_as_framebuffer();
-        r.video_refresh(framebuffer, width as u32, height as u32);
+        // TODO: Video: Refresh
+        // let (framebuffer, width, height) = self.interpreter.screen_as_framebuffer();
+        // r.video_refresh(framebuffer, width as u32, height as u32);
     }
 
     // fn serialize() { }
