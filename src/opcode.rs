@@ -1,4 +1,5 @@
 use mmu::Mmu;
+use std::fmt;
 
 // A standard CHIP-8 opcode is 2-bytes long (big-endian)
 pub struct Opcode {
@@ -34,5 +35,11 @@ impl Opcode {
     #[inline]
     pub fn extract_u8(&self) -> u8 {
         self.lo
+    }
+}
+
+impl fmt::Display for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "${:02X}{:02X}", self.hi, self.lo)
     }
 }

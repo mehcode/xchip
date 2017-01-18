@@ -2,6 +2,7 @@ use std::cmp;
 
 use chip_8;
 use opcode::Opcode;
+use mmu::Mmu;
 use interpreter::{Runtime, Context};
 
 #[derive(PartialEq)]
@@ -52,7 +53,7 @@ impl Runtime for SuperChip {
         self.mode = DisplayMode::Standard;
     }
 
-    fn execute(&mut self, c: &mut Context, opcode: Opcode) -> bool {
+    fn execute(&mut self, c: &mut Context, m: &mut Mmu, opcode: Opcode) -> bool {
         match opcode.unwrap() {
             // SCDOWN
             (0x0, 0x0, 0xC, n) => {
@@ -129,7 +130,7 @@ impl Runtime for SuperChip {
 
             _ => {
                 // Unhandled by SUPER-CHIP
-                return self.chip_8.execute(c, opcode);
+                return self.chip_8.execute(c, m, opcode);
             }
         }
 

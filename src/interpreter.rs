@@ -45,7 +45,7 @@ pub struct Context {
     pub pc: usize,
 
     // Stack Pointer
-    pub sp: usize,
+    pub sp: u8,
     pub stack_len: usize,
 
     // Display buffer (screen) and active resolution
@@ -65,12 +65,36 @@ impl Context {
         // Clear other registers
         self.i = 0;
         self.pc = 0x200;
-        self.sp = self.stack_len * 2;
+        self.sp = 0;
 
         // Clear screen
         for dot in &mut self.screen {
             *dot = 0;
         }
+    }
+
+    pub fn stack_push(&mut self, m: &mut mmu::Mmu, value: u16) {
+        // Increment Stack Pointer
+        self.sp = self.sp.wrapping_add(1);
+
+        // Write to RAM
+        let address = 0x100 + (self.sp as usize) * 2;
+
+        m.write(address, (value >> 8) as u8);
+        m.write(address + 1, (value & 0xFF) as u8);
+    }
+
+    pub fn stack_pop(&mut self, m: &mut mmu::Mmu) -> u16 {
+        // Read from RAM
+        let address = 0x100 + ((self.sp as usize) * 2);
+
+        let hi = m.read(address);
+        let lo = m.read(address + 1);
+
+        // Decrement Stack Pointer
+        self.sp = self.sp.wrapping_sub(1);
+
+        ((hi as u16) << 8) | (lo as u16)
     }
 }
 
@@ -82,7 +106,7 @@ pub trait Runtime {
     fn reset(&mut self) {}
 
     // Execute passed operation; return false if unhandled
-    fn execute(&mut self, c: &mut Context, opcode: Opcode) -> bool;
+    fn execute(&mut self, c: &mut Context, m: &mut mmu::Mmu, opcode: Opcode) -> bool;
 }
 
 #[derive(Default)]
@@ -106,7 +130,7 @@ impl Interpreter {
                                    Default::default());
 
         // TODO: Allow stack_len to be controlled somewhere
-        self.context.stack_len = 12;
+        self.context.stack_len = 256;
 
         // TODO: Compatibility flags should be in here
 
@@ -164,5 +188,12 @@ impl Interpreter {
     pub fn run_next(&mut self, r: &mut axal::Runtime) {
         // Read next 16-bit opcode (and increment PC)
         let opcode = Opcode::read_next(&mut self.context.pc, &mut self.mmu);
+
+        // Execute opcode (with runtime)
+        if let Some(runtime) = self.runtime {
+            if !runtime.execute(&mut self.context, &mut self.mmu, opcode) {
+                panic!("unhandled opcode: {}", opcode);
+            }
+        }
     }
 }
