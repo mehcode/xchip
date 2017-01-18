@@ -25,10 +25,10 @@ The COSMAC VIP that the CHIP-8 language was designed to run on normally had eith
 
  - `X` is the highest 256-byte page of RAM (eg. on a 4 KiB system it would be `8` and on a 2 KiB system, `7`).
  - `Y` is `X - 1`.
+ - Overflowing the stack does not wrap around (at the right boundary, it does eventually wrap around as the internal stack pointer is 8-bits) and can have funny consequences as it will roll over into space reserved for internal operations and general registers.
  - The SUPER-CHIP, MEGA-CHIP, and XO-CHIP do not store the stack,
    work area, V registers, nor video RAM in program-accessible memory.
  - The SUPER-CHIP increased the return stack size to 16 (as did the MEGA-CHIP but not the XO-CHIP).
- - Overflowing the stack does not wrap around (at the right boundary, it does eventually wrap around as the internal stack pointer is 8-bits) and can have funny consequences as it will roll over into space reserved for internal operations and general registers.
 
 ## Instructions
 
