@@ -25,9 +25,6 @@ The COSMAC VIP that the CHIP-8 language was designed to run on normally had eith
 
  - `X` is the highest 256-byte page of RAM (eg. on a 4 KiB system it would be `8` and on a 2 KiB system, `7`).
  - `Y` is `X - 1`.
- - A game could have made use of these details to have significantly faster
-   rendering among other benefits (SAVE/RESTORE could blit N bytes in 2
-   instructions) but I'm unaware of any game that did.
  - The SUPER-CHIP, MEGA-CHIP, and XO-CHIP do not store the stack,
    work area, V registers, nor video RAM in program-accessible memory.
  - The SUPER-CHIP increased the return stack size to 16 (as did the MEGA-CHIP but not the XO-CHIP).
