@@ -5,6 +5,34 @@
 The CHIP-8 is a simple, interpreted language which was designed for use in the COSMAC VIP (but was
 later ported to several other computers such as the DREAM 6800, and ETI 660).
 
+## Specifications
+
+The standard CHIP-8 language can address up to 4 KiB (4,096 bytes) of RAM. The first 512 bytes are where the original
+interpreter was located and should not be used by programs.
+
+The COSMAC VIP that the CHIP-8 language was designed to run on normally had either 2 KiB or 4 KiB of RAM.
+
+### Memory Map
+
+|  |  |
+| --- | --- |
+| `$000` - `$1FF` | Reserved for the interpreter program and contains the standard font sprites. |
+| `$200` - `$Y9F` | User program; CHIP-8 programs are loaded (and begin execution) at `$200`. |
+| `$YA0` - `$YCF` | Return stack (max of 12) |
+| `$YD0` - `$YEF` | Reserved for interpreter work area |
+| `$YF0` - `$YFF` | V0 - VF |
+| `$X00` - `$XFF` | Video RAM |
+
+ - `X` is the highest 256-byte page of RAM (eg. on a 4 KiB system it would be `8` and on a 2 KiB system, `7`).
+ - `Y` is `X - 1`.
+ - A game could have made use of these details to have significantly faster
+   rendering among other benefits (SAVE/RESTORE could blit N bytes in 2
+   instructions) but I'm unaware of any game that did.
+ - The SUPER-CHIP, MEGA-CHIP, and XO-CHIP do not store the stack,
+   work area, V registers, nor video RAM in program-accessible memory.
+ - The SUPER-CHIP increased the return stack size to 16 (as did the MEGA-CHIP but not the XO-CHIP).
+ - Overflowing the stack does not wrap around (at the right boundary, it does eventually wrap around as the internal stack pointer is 8-bits) and can have funny consequences as it will roll over into space reserved for internal operations and general registers.
+
 ## Instructions
 
 | Opcode | Description |

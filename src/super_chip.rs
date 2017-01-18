@@ -1,6 +1,3 @@
-// TODO: Remove
-#![allow(dead_code)]
-
 use std::cmp;
 
 use chip_8;
@@ -35,6 +32,26 @@ pub struct SuperChip {
 }
 
 impl Runtime for SuperChip {
+    fn configure(&mut self, c: &mut Context) {
+        // Increase screen size to 128x64
+        c.screen_width = 128;
+        c.screen_height = 64;
+        c.screen.resize(c.screen_width * c.screen_height, Default::default());
+    }
+
+    fn reset(&mut self) {
+        // Reset CHIP-8
+        self.chip_8.reset();
+
+        // Clear scratch storage
+        for v in &mut self.v_scratch {
+            *v = 0;
+        }
+
+        // Reset display mode to Standard
+        self.mode = DisplayMode::Standard;
+    }
+
     fn execute(&mut self, c: &mut Context, opcode: Opcode) -> bool {
         match opcode.unwrap() {
             // SCDOWN

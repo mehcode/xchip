@@ -1,15 +1,3 @@
-// use std::vec::Vec;
-// use std::cmp;
-// use std::time::Instant;
-// use axal::{Runtime, Key};
-// use rand::random;
-
-// const SCREEN_STANDARD_WIDTH: usize = 64;
-// const SCREEN_STANDARD_HEIGHT: usize = 32;
-
-// const SCREEN_EXTENDED_WIDTH: usize = 128;
-// const SCREEN_EXTENDED_HEIGHT: usize = 64;
-
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -88,10 +76,10 @@ impl Context {
 
 pub trait Runtime {
     // Initialize the context and RAM for the usage of this runtime
-    fn initialize(&mut self);
+    fn configure(&mut self, c: &mut Context) {}
 
     // Reset any contained state
-    fn reset(&mut self);
+    fn reset(&mut self) {}
 
     // Execute passed operation; return false if unhandled
     fn execute(&mut self, c: &mut Context, opcode: Opcode) -> bool;
@@ -110,9 +98,22 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn initialize(&mut self) {
+    pub fn configure(&mut self) {
+        // The standard screen size is 64x32
+        self.context.screen_width = 64;
+        self.context.screen_height = 32;
+        self.context.screen.resize(self.context.screen_width * self.context.screen_height,
+                                   Default::default());
+
         // TODO: Allow stack_len to be controlled somewhere
         self.context.stack_len = 12;
+
+        // TODO: Compatibility flags should be in here
+
+        // Configure runtime
+        if let Some(runtime) = self.runtime {
+            runtime.configure(&mut self.context);
+        }
     }
 
     pub fn insert_rom(&mut self, filename: &str, mode: Option<Mode>) {
@@ -136,12 +137,17 @@ impl Interpreter {
             }
         }));
 
-        // Initialize runtime
-        self.runtime.unwrap().initialize();
+        // Configure interpreter (and associated runtime)
+        // The hook is here to allow for ROMs to eventually control
+        // any parameters here.
+        self.configure();
     }
 
     pub fn remove_rom(&mut self) {
+        // Wipe out RAM
         self.mmu.clear();
+
+        // Release runtime
         self.runtime = None;
     }
 
@@ -149,9 +155,9 @@ impl Interpreter {
         // Reset context
         self.context.reset();
 
-        // Reset runtime
+        // Reset associated runtime
         if let Some(runtime) = self.runtime {
-            // runtime.reset();
+            runtime.reset();
         }
     }
 
