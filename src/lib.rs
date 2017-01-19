@@ -3,6 +3,8 @@
 #[macro_use]
 extern crate axal;
 
+extern crate rand;
+
 mod mmu;
 mod opcode;
 
@@ -29,7 +31,7 @@ impl axal::Core for Core {
     }
 
     fn rom_insert(&mut self, filename: &str) {
-        self.interpreter.insert_rom(filename);
+        self.interpreter.insert_rom(filename, None);
     }
 
     fn rom_remove(&mut self) {
@@ -43,9 +45,9 @@ impl axal::Core for Core {
             self.interpreter.run_next(r);
         }
 
-        // TODO: Video: Refresh
-        // let (framebuffer, width, height) = self.interpreter.screen_as_framebuffer();
-        // r.video_refresh(framebuffer, width as u32, height as u32);
+        // Video: Refresh
+        let (framebuffer, width, height) = self.interpreter.screen_as_framebuffer();
+        r.video_refresh(framebuffer, width as u32, height as u32);
     }
 
     // fn serialize() { }

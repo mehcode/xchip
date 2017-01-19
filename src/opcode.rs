@@ -2,6 +2,7 @@ use mmu::Mmu;
 use std::fmt;
 
 // A standard CHIP-8 opcode is 2-bytes long (big-endian)
+#[derive(Clone, Copy)]
 pub struct Opcode {
     hi: u8,
     lo: u8,

@@ -1,10 +1,13 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::vec::Vec;
+use std::time::Instant;
 
 use axal;
 
 use super_chip;
+use chip_8;
 use opcode::Opcode;
 use mmu;
 
@@ -33,6 +36,9 @@ impl Mode {
 
 #[derive(Default)]
 pub struct Context {
+    // Framebuffer / Video RAM
+    framebuffer: Vec<u8>,
+
     // General registers (16x 8-bit)
     pub v: [u8; 16],
 
@@ -50,9 +56,15 @@ pub struct Context {
 
     // Display buffer (screen) and active resolution
     //  screen.len() == screen_width * screen_height
-    pub screen: Vec<u8>,
+    pub screen: Vec<bool>,
     pub screen_width: usize,
     pub screen_height: usize,
+
+    // Delay timer
+    pub dt: u8,
+
+    // Sound timer
+    pub st: u8,
 }
 
 impl Context {
@@ -66,10 +78,15 @@ impl Context {
         self.i = 0;
         self.pc = 0x200;
         self.sp = 0;
+        self.dt = 0;
+        self.st = 0;
+
+        // Clear framebuffer
+        self.framebuffer.clear();
 
         // Clear screen
         for dot in &mut self.screen {
-            *dot = 0;
+            *dot = false;
         }
     }
 
@@ -105,8 +122,32 @@ pub trait Runtime {
     // Reset any contained state
     fn reset(&mut self) {}
 
+    // Update framebuffer (in context)
+    fn update_framebuffer(&mut self, c: &mut Context) {
+        // Blit screen onto framebuffer
+        c.framebuffer.resize(c.screen.len(), 0);
+        for y in 0..c.screen_height {
+            let offset_y = y * c.screen_width;
+
+            for x in 0..c.screen_width {
+                let offset = offset_y + x;
+
+                // Get dot from screen
+                let dot = c.screen[offset];
+
+                // Blit to framebuffer
+                c.framebuffer[offset] = if dot { 0xFF } else { 0x00 };
+            }
+        }
+    }
+
     // Execute passed operation; return false if unhandled
-    fn execute(&mut self, c: &mut Context, m: &mut mmu::Mmu, opcode: Opcode) -> bool;
+    fn execute(&mut self,
+               r: &mut axal::Runtime,
+               c: &mut Context,
+               m: &mut mmu::Mmu,
+               opcode: Opcode)
+               -> bool;
 }
 
 #[derive(Default)]
@@ -119,6 +160,10 @@ pub struct Interpreter {
 
     // Active runtime (CHIP-8, CHIP-8X, etc.)
     runtime: Option<Box<Runtime>>,
+
+    // 60 Hz timer that controls DT / ST
+    timer_elapsed: u64,
+    timer_instant: Option<Instant>,
 }
 
 impl Interpreter {
@@ -132,10 +177,107 @@ impl Interpreter {
         // TODO: Allow stack_len to be controlled somewhere
         self.context.stack_len = 256;
 
+        // Setup standard font sprites
+        // TODO: Make this look a lot nicer
+        self.mmu.write(0x00, 0xF0);
+        self.mmu.write(0x01, 0x90);
+        self.mmu.write(0x02, 0x90);
+        self.mmu.write(0x03, 0x90);
+        self.mmu.write(0x04, 0xF0);
+
+        self.mmu.write(0x05, 0x20);
+        self.mmu.write(0x06, 0x60);
+        self.mmu.write(0x07, 0x20);
+        self.mmu.write(0x08, 0x20);
+        self.mmu.write(0x09, 0x70);
+
+        self.mmu.write(0x0A, 0xF0);
+        self.mmu.write(0x0B, 0x10);
+        self.mmu.write(0x0C, 0xF0);
+        self.mmu.write(0x0D, 0x80);
+        self.mmu.write(0x0E, 0xF0);
+
+        self.mmu.write(0x0F, 0xF0);
+        self.mmu.write(0x10, 0x10);
+        self.mmu.write(0x11, 0xF0);
+        self.mmu.write(0x12, 0x10);
+        self.mmu.write(0x13, 0xF0);
+
+        self.mmu.write(0x14, 0x90);
+        self.mmu.write(0x15, 0x90);
+        self.mmu.write(0x16, 0xF0);
+        self.mmu.write(0x17, 0x10);
+        self.mmu.write(0x18, 0x10);
+
+        self.mmu.write(0x19, 0xF0);
+        self.mmu.write(0x1A, 0x80);
+        self.mmu.write(0x1B, 0xF0);
+        self.mmu.write(0x1C, 0x10);
+        self.mmu.write(0x1D, 0xF0);
+
+        self.mmu.write(0x1E, 0xF0);
+        self.mmu.write(0x1F, 0x80);
+        self.mmu.write(0x20, 0xF0);
+        self.mmu.write(0x21, 0x90);
+        self.mmu.write(0x22, 0xF0);
+
+        self.mmu.write(0x23, 0xF0);
+        self.mmu.write(0x24, 0x10);
+        self.mmu.write(0x25, 0x20);
+        self.mmu.write(0x26, 0x40);
+        self.mmu.write(0x27, 0x40);
+        self.mmu.write(0x28, 0xF0);
+        self.mmu.write(0x29, 0x90);
+        self.mmu.write(0x2A, 0xF0);
+        self.mmu.write(0x2B, 0x90);
+        self.mmu.write(0x2C, 0xF0);
+
+        self.mmu.write(0x2D, 0xF0);
+        self.mmu.write(0x2E, 0x90);
+        self.mmu.write(0x2F, 0xF0);
+        self.mmu.write(0x30, 0x10);
+        self.mmu.write(0x31, 0xF0);
+
+        self.mmu.write(0x32, 0xF0);
+        self.mmu.write(0x33, 0x90);
+        self.mmu.write(0x34, 0xF0);
+        self.mmu.write(0x35, 0x90);
+        self.mmu.write(0x36, 0x90);
+
+        self.mmu.write(0x37, 0xE0);
+        self.mmu.write(0x38, 0x90);
+        self.mmu.write(0x39, 0xE0);
+        self.mmu.write(0x3A, 0x90);
+        self.mmu.write(0x3B, 0xE0);
+
+        self.mmu.write(0x3C, 0xF0);
+        self.mmu.write(0x3D, 0x80);
+        self.mmu.write(0x3E, 0x80);
+        self.mmu.write(0x3F, 0x80);
+        self.mmu.write(0x40, 0xF0);
+
+        self.mmu.write(0x41, 0xE0);
+        self.mmu.write(0x42, 0x90);
+        self.mmu.write(0x43, 0x90);
+        self.mmu.write(0x44, 0x90);
+        self.mmu.write(0x45, 0xE0);
+
+        self.mmu.write(0x46, 0xF0);
+        self.mmu.write(0x47, 0x80);
+        self.mmu.write(0x48, 0xF0);
+        self.mmu.write(0x49, 0x80);
+        self.mmu.write(0x4A, 0xF0);
+
+        self.mmu.write(0x4B, 0xF0);
+        self.mmu.write(0x4C, 0x80);
+        self.mmu.write(0x4D, 0xF0);
+        self.mmu.write(0x4E, 0x80);
+        self.mmu.write(0x4F, 0x80);
+
         // TODO: Compatibility flags should be in here
 
         // Configure runtime
-        if let Some(runtime) = self.runtime {
+        if let Some(ref mut runtime) = self.runtime {
             runtime.configure(&mut self.context);
         }
     }
@@ -157,7 +299,7 @@ impl Interpreter {
         self.runtime = Some(Box::new(match mode {
             _ => {
                 // TODO: Use XO-CHIP here
-                Default::default(): super_chip::SuperChip
+                Default::default(): chip_8::Chip8
             }
         }));
 
@@ -180,20 +322,52 @@ impl Interpreter {
         self.context.reset();
 
         // Reset associated runtime
-        if let Some(runtime) = self.runtime {
+        if let Some(ref mut runtime) = self.runtime {
             runtime.reset();
         }
     }
 
     pub fn run_next(&mut self, r: &mut axal::Runtime) {
+        // If timer point reference is non-zero; check elapsed and
+        // clock ST / DT
+        if let Some(timer_instant) = self.timer_instant {
+            let elapsed = timer_instant.elapsed();
+            self.timer_elapsed += (elapsed.as_secs() * 1_000_000_000) +
+                                  (elapsed.subsec_nanos() as u64);
+
+            // 1/60 s => 16_666_666 ns
+            if self.timer_elapsed >= 16_666_666 {
+                self.timer_elapsed -= 16_666_666;
+
+                if self.context.dt > 0 {
+                    self.context.dt -= 1;
+                }
+
+                if self.context.st > 0 {
+                    self.context.st -= 1;
+                }
+            }
+        }
+
         // Read next 16-bit opcode (and increment PC)
         let opcode = Opcode::read_next(&mut self.context.pc, &mut self.mmu);
 
         // Execute opcode (with runtime)
-        if let Some(runtime) = self.runtime {
-            if !runtime.execute(&mut self.context, &mut self.mmu, opcode) {
+        if let Some(ref mut runtime) = self.runtime {
+            if !runtime.execute(r, &mut self.context, &mut self.mmu, opcode) {
                 panic!("unhandled opcode: {}", opcode);
             }
         }
+
+        // Update timer point reference
+        self.timer_instant = Some(Instant::now());
+    }
+
+    pub fn screen_as_framebuffer(&mut self) -> (&[u8], usize, usize) {
+        if let Some(ref mut runtime) = self.runtime {
+            runtime.update_framebuffer(&mut self.context);
+        }
+
+        (&self.context.framebuffer, self.context.screen_width, self.context.screen_height)
     }
 }

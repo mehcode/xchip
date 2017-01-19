@@ -4,6 +4,7 @@ use chip_8;
 use opcode::Opcode;
 use mmu::Mmu;
 use interpreter::{Runtime, Context};
+use axal;
 
 #[derive(PartialEq)]
 enum DisplayMode {
@@ -53,7 +54,12 @@ impl Runtime for SuperChip {
         self.mode = DisplayMode::Standard;
     }
 
-    fn execute(&mut self, c: &mut Context, m: &mut Mmu, opcode: Opcode) -> bool {
+    fn execute(&mut self,
+               r: &mut axal::Runtime,
+               c: &mut Context,
+               m: &mut Mmu,
+               opcode: Opcode)
+               -> bool {
         match opcode.unwrap() {
             // SCDOWN
             (0x0, 0x0, 0xC, n) => {
@@ -130,7 +136,7 @@ impl Runtime for SuperChip {
 
             _ => {
                 // Unhandled by SUPER-CHIP
-                return self.chip_8.execute(c, m, opcode);
+                return self.chip_8.execute(r, c, m, opcode);
             }
         }
 
