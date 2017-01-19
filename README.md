@@ -1,5 +1,5 @@
 # xCHIP
-> Accurate CHIP-8, CHIP-10, HIRES CHIP-8, CHIP-8X, SUPER-CHIP, and XO-CHIP Interpreter in Rust.
+> Accurate CHIP-8, CHIP-10, HIRES CHIP-8, CHIP-8X, SUPER-CHIP, and XO-CHIP interpreter in Rust.
 
 ## Features
  - Simple **flicker reduction** ­— 10-20 instruction delay from a pixel being turned off to it actually turning off
