@@ -15,7 +15,6 @@ line.
 | CHIP-8       | `chip-8`, `8`           | ---             |
 | HIRES CHIP-8 | `hires-chip-8`, `hires` | ---             |
 | CHIP-10      | `chip-10`, `10`         | `.ch10`         |
-| CHIP-8C      | ---                     | ---             |
 | CHIP-8X      | `chip-8x`, `8x`         | `.c8x`          |
 | SUPER-CHIP   | `super-chip`, `sc`      | ---             |
 | XO-CHIP      | `xo-chip`, `xo`         | `.ch8`          |
