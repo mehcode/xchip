@@ -8,6 +8,7 @@ use axal;
 
 use super_chip;
 use chip_8;
+use chip_8x;
 use opcode::Opcode;
 use mmu;
 
@@ -27,8 +28,8 @@ impl Mode {
         let ext = Path::new(filename).extension().unwrap_or_default().to_string_lossy();
 
         match &*ext {
-            ".ch10" => Mode::Chip10,
-            ".c8x" => Mode::Chip8x,
+            "ch10" => Mode::Chip10,
+            "c8x" => Mode::Chip8x,
             _ => Mode::XoChip,
         }
     }
@@ -37,7 +38,7 @@ impl Mode {
 #[derive(Default)]
 pub struct Context {
     // Framebuffer / Video RAM
-    framebuffer: Vec<u8>,
+    pub framebuffer: Vec<u8>,
 
     // General registers (16x 8-bit)
     pub v: [u8; 16],
@@ -119,8 +120,13 @@ pub trait Runtime {
     // Initialize the context and RAM for the usage of this runtime
     fn configure(&mut self, c: &mut Context) {}
 
-    // Reset any contained state
-    fn reset(&mut self) {}
+    // Reset state
+    fn reset(&mut self, c: &mut Context) {}
+
+    // Insert ROM
+    fn insert_rom(&mut self, m: &mut mmu::Mmu, buffer: &[u8]) {
+        m.write_all(0x200, buffer);
+    }
 
     // Update framebuffer (in context)
     fn update_framebuffer(&mut self, c: &mut Context) {
@@ -283,25 +289,29 @@ impl Interpreter {
     }
 
     pub fn insert_rom(&mut self, filename: &str, mode: Option<Mode>) {
-        // Read in ROM
-        let mut stream = File::open(filename).unwrap();
-        let mut buffer = Vec::new();
-        stream.read_to_end(&mut buffer).unwrap();
-
-        // Write to RAM (starting at $200)
-        self.mmu.write_all(0x200, &buffer);
-
         // Determine mode
         let mode = mode.unwrap_or_else(|| Mode::from_file(filename));
 
         // Construct runtime
         // TODO: Support other modes
-        self.runtime = Some(Box::new(match mode {
+        self.runtime = Some(match mode {
+            Mode::Chip8x => Box::new(Default::default(): chip_8x::Chip8x),
+
             _ => {
                 // TODO: Use XO-CHIP here
-                Default::default(): chip_8::Chip8
+                Box::new(Default::default(): chip_8::Chip8)
             }
-        }));
+        });
+
+        // Read in ROM
+        let mut stream = File::open(filename).unwrap();
+        let mut buffer = Vec::new();
+        stream.read_to_end(&mut buffer).unwrap();
+
+        // Insert ROM
+        if let Some(ref mut runtime) = self.runtime {
+            runtime.insert_rom(&mut self.mmu, &buffer);
+        }
 
         // Configure interpreter (and associated runtime)
         // The hook is here to allow for ROMs to eventually control
@@ -323,7 +333,7 @@ impl Interpreter {
 
         // Reset associated runtime
         if let Some(ref mut runtime) = self.runtime {
-            runtime.reset();
+            runtime.reset(&mut self.context);
         }
     }
 

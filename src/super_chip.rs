@@ -41,9 +41,9 @@ impl Runtime for SuperChip {
         c.screen.resize(c.screen_width * c.screen_height, Default::default());
     }
 
-    fn reset(&mut self) {
+    fn reset(&mut self, c: &mut Context) {
         // Reset CHIP-8
-        self.chip_8.reset();
+        self.chip_8.reset(c);
 
         // Clear scratch storage
         for v in &mut self.v_scratch {

@@ -13,7 +13,7 @@ impl Mmu {
 
     fn extend(&mut self, address: usize) {
         if address >= self.ram.len() {
-            self.ram.resize(address, 0);
+            self.ram.resize(address + 1, 0);
         }
     }
 

@@ -9,6 +9,7 @@ mod mmu;
 mod opcode;
 
 mod chip_8;
+mod chip_8x;
 mod super_chip;
 
 mod interpreter;
